@@ -8,6 +8,7 @@ Features:
 * Uses the new Bolt binary protocol Java driver released with [Neo4j 3.0](http://neo4j.com/blog/neo4j-3-0-massive-scale-developer-productivity/)
 * Configurable NiFi connection pool service
 * PutCypher processor for updating Neo4j
+* Supports parameterised cypher queries for primitive property types (float, string, boolean and integer) - see processor usage documentation details.
 * _(coming soon)_ GetCypher processor for fetching data, with support for streaming arbitrarily large query results 
 
 Limitations:
@@ -17,7 +18,7 @@ Limitations:
 #### Setup & Usage
 
 1. Either build from source or download the latest release
-2. Put the .nar files in the nifi lib directory
+2. Put the .nar files in the nifi lib directory, and remove any old versions
 3. Start (or restart) NiFi
 4. Create, configure and start a Neo4j Bolt Session Pool service (controller service menu)
 5. Create and configure a cypher processor in your flow

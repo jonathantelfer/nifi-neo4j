@@ -20,6 +20,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -36,10 +37,9 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+import java.util.*;
 
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -55,6 +55,9 @@ import org.neo4j.driver.v1.summary.SummaryCounters;
 @CapabilityDescription("Executes a cypher statement to insert or update data in Neo4j. The content of an incoming FlowFile is expected to be the cypher command " +
     "to execute. The cypher query can optionally be provided as an attribute. If the query returns a result the processor will add any" +
     "fields returned as attributes. Only the first result record will be read, any others will be discarded.")
+@DynamicProperty(name = "Query parameter", value = "Attribute Expression Language", supportsExpressionLanguage = true, description = "Allows cypher query parameters "
+        + "to be specified as properties. Properties should be named cypher.param.type.name where type is one of string, integer, " +
+        "float or boolean and name is the name of the query parameter.")
 @WritesAttributes({
     @WritesAttribute(attribute = "neo4j.result.*", description = "If the query returns a record an attribute will be created " +
             "for each field in the record. "),
@@ -111,6 +114,17 @@ public class PutCypher extends AbstractProcessor {
     }
 
     @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .required(false)
+                .name(propertyDescriptorName)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .dynamic(true)
+                .expressionLanguageSupported(true)
+                .build();
+    }
+
+    @Override
     public Set<Relationship> getRelationships() {
         final Set<Relationship> rels = new HashSet<>();
         rels.add(REL_SUCCESS);
@@ -131,6 +145,7 @@ public class PutCypher extends AbstractProcessor {
 
         final BoltSessionPool sessionPool = context.getProperty(SESSION_POOL).asControllerService(BoltSessionPool.class);
         String cypherQuery = context.getProperty(CYPHER_QUERY).evaluateAttributeExpressions(flowFile).getValue();
+        Map<String,Object> params = getQueryParameters(context);
 
         // If the cypher query attribute wasn't set read the query from the flowFile content
         if (cypherQuery == null) {
@@ -145,7 +160,7 @@ public class PutCypher extends AbstractProcessor {
         }
 
         try (final Session dbSession = sessionPool.getSession()) {
-            StatementResult result = dbSession.run(cypherQuery);
+            StatementResult result = dbSession.run(cypherQuery, params);
 
             if (result.hasNext()) {
                 Record record = result.next();
@@ -185,4 +200,41 @@ public class PutCypher extends AbstractProcessor {
 
     }
 
+    /**
+     * Retrieves any dynamic properties set on the processor to be used as cypher query parameters.
+     *
+     * Properties need to be named cypher.param.type.name where type is either boolean, string, integer
+     * or float and name is the name of the query parameter.
+     *
+     * boolean, integer and float parameters will be converted to primitive wrapper objects.
+     *
+     * @param context the process context for retrieving properties
+     * @return a map of query parameters ready to pass to Neo4j
+     */
+    private Map<String,Object> getQueryParameters(final ProcessContext context) {
+        Map<String,Object> params = new HashMap<String,Object>();
+        Pattern p = Pattern.compile("cypher\\.param\\.(boolean|string|integer|float)\\.(.*)");
+        for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
+            Matcher m = p.matcher(property.getKey().getName());
+            if (m.matches()) {
+                switch (m.group(1)) {
+                    case "boolean":
+                        params.put(m.group(2), new Boolean(property.getValue()));
+                        break;
+                    case "integer":
+                        params.put(m.group(2), new Integer(property.getValue()));
+                        break;
+                    case "float":
+                        params.put(m.group(2), new Double(property.getValue()));
+                        break;
+                    case "string":
+                        params.put(m.group(2), property.getValue());
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Unrecognised type " + m.group(1) + " in cypher parameter property " + property.getKey().getName());
+                }
+            }
+        }
+        return params;
+    }
 }

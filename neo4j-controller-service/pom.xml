@@ -20,7 +20,7 @@
     <parent>
         <groupId>com.jonathantelfer.nifi</groupId>
         <artifactId>nifi-neo4j-bundle</artifactId>
-        <version>0.1</version>
+        <version>0.2.0</version>
     </parent>
 
     <artifactId>neo4j-controller-service</artifactId>
@@ -30,7 +30,7 @@
         <dependency>
             <groupId>com.jonathantelfer.nifi</groupId>
             <artifactId>neo4j-controller-service-api</artifactId>
-            <version>0.1</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
