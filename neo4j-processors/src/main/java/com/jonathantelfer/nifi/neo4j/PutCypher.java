@@ -145,7 +145,7 @@ public class PutCypher extends AbstractProcessor {
 
         final BoltSessionPool sessionPool = context.getProperty(SESSION_POOL).asControllerService(BoltSessionPool.class);
         String cypherQuery = context.getProperty(CYPHER_QUERY).evaluateAttributeExpressions(flowFile).getValue();
-        Map<String,Object> params = getQueryParameters(context);
+        Map<String,Object> params = getQueryParameters(flowFile, context);
 
         // If the cypher query attribute wasn't set read the query from the flowFile content
         if (cypherQuery == null) {
@@ -211,24 +211,25 @@ public class PutCypher extends AbstractProcessor {
      * @param context the process context for retrieving properties
      * @return a map of query parameters ready to pass to Neo4j
      */
-    private Map<String,Object> getQueryParameters(final ProcessContext context) {
+    private Map<String,Object> getQueryParameters(final FlowFile flowFile, final ProcessContext context) {
         Map<String,Object> params = new HashMap<String,Object>();
         Pattern p = Pattern.compile("cypher\\.param\\.(boolean|string|integer|float)\\.(.*)");
         for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
             Matcher m = p.matcher(property.getKey().getName());
             if (m.matches()) {
+                String value = context.getProperty(property.getKey()).evaluateAttributeExpressions(flowFile).getValue();
                 switch (m.group(1)) {
                     case "boolean":
-                        params.put(m.group(2), new Boolean(property.getValue()));
+                        params.put(m.group(2), new Boolean(value));
                         break;
                     case "integer":
-                        params.put(m.group(2), new Integer(property.getValue()));
+                        params.put(m.group(2), new Integer(value));
                         break;
                     case "float":
-                        params.put(m.group(2), new Double(property.getValue()));
+                        params.put(m.group(2), new Double(value));
                         break;
                     case "string":
-                        params.put(m.group(2), property.getValue());
+                        params.put(m.group(2), value);
                         break;
                     default:
                         throw new IllegalArgumentException("Unrecognised type " + m.group(1) + " in cypher parameter property " + property.getKey().getName());
