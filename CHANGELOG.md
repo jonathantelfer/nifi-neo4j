@@ -2,7 +2,12 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
+## 0.2.1
+### Fixed
+- PutCypher dynamic properties for cypher query parameters now evaluate NiFi expression language
+
+
+## 0.2.0
 ### Added
 - Support for parameterised cypher queries using primitive types (Neo4j float, integer, string and boolean)
 - Processor usage documentation updated with instructions for using parameterised queries
