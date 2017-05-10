@@ -1,7 +1,7 @@
 #### A NiFi Connection Pool Service and Cypher Processors for Neo4j 3.0
 A collection of tools for accessing Neo4j graph databases from Apache NiFi.
 
-**_This is alpha software under active development and is not intended for use in a production environment._**
+**_This is alpha quality software and is not currently actively maintained. It is not intended for use in a production environment._**
 
 
 Requires:
