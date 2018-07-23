@@ -25,7 +25,7 @@
 
     <groupId>com.jonathantelfer.nifi</groupId>
     <artifactId>nifi-neo4j-bundle</artifactId>
-    <version>0.2.3</version>
+    <version>0.2.4</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -40,7 +40,7 @@
         <dependency>
             <groupId>org.neo4j.driver</groupId>
             <artifactId>neo4j-java-driver</artifactId>
-            <version>1.4.5</version>
+            <version>1.6.2</version>
         </dependency>
     </dependencies>
 
